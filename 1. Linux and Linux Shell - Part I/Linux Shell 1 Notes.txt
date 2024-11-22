@@ -1,0 +1,194 @@
+Check OS
+	terminal --> cat /etc/os-release
+
+We can install wsl (windows subsistem linux)
+	terminal -> wsl install
+
+Play with Docker - https://labs.play-with-docker.com/
+	- Register to Docker
+	- Add New Instance
+
+
+--------------
+Linux Commands
+--------------
+
+Show current folder
+	terminal --> pwd
+
+Show all in current dir
+	terminal --> ls -la /
+
+Show current user in Linux
+	terminal --> whoami
+
+Show Kernel name
+	terminal --> uname -a
+
+Clean screen
+	terminal --> clear
+
+Go to specific directory
+	terminal --> cd /<dir_name>
+
+Go to upper dir
+	terminal --> cd ..
+
+Create dir 
+	terminal --> mkdir [options] directory [directory …]
+
+Copy files and directories
+	terminal --> cp [options] source dest
+
+Move/Rename files
+	terminal --> mv [options] source dest
+
+Create file
+	terminal --> touch <filename>
+
+Remove files or directories
+	terminal --> rm [options] file [file …]
+
+Output the first part (10 lines by default) of files
+	terminal --> head [options] [files]
+
+Output the last part (10 lines by default) of files
+	terminal --> tail [options] [files]
+
+Read data from the file and return the content as output
+	terminal --> cat [filename]
+
+Use VIM
+	terminal --> vim <filename>
+
+enter in insert mode
+	terminal --> i
+
+add line info
+
+Escape VIM
+	terminal --> escape/shift/wq			# quit/shoft(command)/w(write)&q(quit)
+
+
+--------------------
+Input Output Streams
+--------------------
+
+Create record in specific file. If file do not exists, create it
+	terminal --> echo 'Hello World!' > hello.txt
+
+Append record in specific existing file
+	terminal --> echo 'Hello DevOps' >> hello.txt
+
+How to check if previous command is error or success
+	terminal --> echo $?	// if result is '1', error is occur, if 0, success
+
+How to set logs of whatever the result is
+	terminal --> cat file.txt > new_file.txt 2>&1	// in the file new_file.txt is the result (error or success)
+
+
+
+-----------------
+Command Sequences
+-----------------
+
+Sequence (disconnected):
+	terminal --> command1 ; command2	// command are always executed, despite command1 or command2 retern error
+
+Sequence (connected):
+	terminal --> command1 | command2	// execute command1 and then command2 executed over the result of command1
+	terminal --> ls | sort | head -n 3	// list, sorted, first 3 lines
+	terminal --> ls | sort | tail -n 3	// list, sorted, last 3 lines
+
+Show count lines in file
+	terminal --> wc -l <file_name>
+
+Execute conditionally:
+	terminal --> command1 && command2	// execute command2 if command1 is success 
+	terminal --> command1 || command2	// command1 or command2
+
+	terminal --> cat existing-file.txt && echo Ok
+	result --> list existing-file.txt
+		   Ok
+
+	teminal --> echo non-existing-file.txt && echo Ok
+	result --> error (Ok is not printed)
+		   
+	terminal --> cat existing-file.txt || echo Ok
+	result --> list existing-file.txt (Ok is not printed)
+
+	teminal --> echo non-existing-file.txt || echo Ok
+	result --> error 
+		   Ok 
+
+
+===================
+	LAB
+===================
+Register and login to Docker and DockerHub
+
+Go to https://labs.play-with-docker.com/
+	- Start
+	- Add new session
+
+How to see where we are
+	terminal --> pwd
+
+Show all content in root dir
+	terminal --> ls -al /
+
+Go to /etc folder:
+	terminal --> cd /etc
+
+Show urrent dir:
+	terminnal --> pwd
+
+Find files whose names start with "os"
+	terminal --> ls os*
+	result: os-release
+
+Display file insformation
+	terminal --> cat os-release	# distribution info
+	terminal --> uname -a		# os info
+
+Show hostname
+	terminal --> hostname
+	terminal --> cat /etc/hostname
+
+Navigate to root dir
+	terminal --> cd
+	terminal --> pwd
+
+We can logout from session
+	terminal --> logout
+
+How to see date
+	terminal --> date
+	terminal --> date +%Y-%m-%d	# formatted date
+
+Show calendar
+	terminal --> cal -3
+
+Show system up time
+	terminal --> uptime
+
+Show history
+	terminal --> history
+
+Show file history
+	terminal --> cat .bash_history
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+

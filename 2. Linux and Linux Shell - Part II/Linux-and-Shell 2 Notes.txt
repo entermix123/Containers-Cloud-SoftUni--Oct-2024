@@ -1,0 +1,696 @@
+1. Users and Groups
+2. Access Rights
+3. Environment Variables
+4. Secure Shell
+5. Processes
+6. More Linux Commands
+
+
+Open Play with Docker Linux console
+	- Got to https://labs.play-with-docker.com/
+	- Start
+	- Add new session
+
+Show result of the last command
+	terminal --> echo $?	# if 0 - OK , if 1 - error
+
+----------------------
+STDIN, STDOUT & STDERR
+----------------------
+
+▪ stdin == standard input stream (N.0)
+▪ stdout == standard output stream (N.1)
+▪ stderr == standard error output stream (N.2)
+
+Redirect Output
+Synatx to save logs when command is executed
+	terminal --> cat file1.txt > success1.txt 2> error1.txt
+
+	# '1>' or '>' is for success
+	# '2>' is for error
+	# the result is saved in different files 
+
+	Short syntax
+	terminal --> cat file1.txt > soccess_or_error.txt 2>&1
+	# open file1.txt
+	# if success save result in soccess_or_error.txt
+	# if error save result again in soccess_or_error.txt
+
+
+-----------------
+Command Sequences
+-----------------
+
+Execute Multiple Commands. Substitution
+
+Sequence (disconnected):
+	terminal --> command1 ; command2	// command are always executed, despite command1 or command2 retern error
+
+Sequence (connected):
+	terminal --> command1 | command2	// execute command1 and then command2 executed over the result of command1
+	terminal --> ls | sort | head -n 3	// list, sorted, first 3 lines
+	terminal --> ls | sort | tail -n 3	// list, sorted, last 3 lines
+
+Show count lines in file
+	terminal --> wc -l <file_name>
+
+
+Example for disconnected command with ';'
+	- enter 'tmp' directory
+	terminal --> c d/tmp
+	
+	- execute disconnected command - try to open not existing file na dlist all files and folders
+	terminal --> cat nonexistingfile.txt ; ls -la
+
+
+Example for connected command with '|'
+
+Create file demo.txt
+	terminal --> > demo.txt
+
+	- open file in edit mode
+	terminal --> vi demo.txt
+	- enter text
+	line1: "1 example text line 1"
+	line2: "2 example text line 2"
+	line3: "aaaaaaa"
+	line4: "bbbbbbb"
+	- save changes
+	press 'esc', press 'Shift' + ':'
+	write 'wq' and press 'enter'
+
+	- reed the file
+	terminal --> cat demo.txt | sort | tail -n 2	# sort and show last 2 lines
+	terminal --> cat demo.txt | sort | head -n 2	# sort and show first 2 lines (added empty line)
+
+
+Example for connected command with '&&'	
+	terminal --> ls nonexistingfile.txt && echo OK	
+	result: ls: nonexistingfile.txt: No such file or directory	# just error for file not found
+			
+	terminal --> ls demo.txt && echo OK				# 
+	result: demo.txt
+		OK
+	
+Example for connected command with "||"	
+	terminal --> ls nonexistingfile.txt || echo OK	
+	result: ls: nonexistingfile.txt: No such file or directory	# error for file not found
+		OK							# OK 
+
+	terminal --> ls demo.txt || echo OK				
+	result: demo.txt						# success and no error, so no "OK"
+
+Create new user
+	terminal --> adduser danio
+	password1: passdan123
+	password2: passdan123
+
+Switch user
+	terminal --> su danio
+
+
+
+----------------
+Users and Groups
+----------------
+
+Show users
+	terminal --> cat /etc/passwd
+
+Every user is new line and have different properties
+
+madmin:x:1000:1000:M.Admin:/home/madmin:/bin/bash
+
+1:2:3:4:5:6:7
+
+1. Username (login)
+2. Password placeholder
+3. User ID
+4. Group ID
+5. Comment (full name, phone, etc.)
+6. Home directory
+7. User shell
+
+
+How to add user
+	terminal --> adduser <name>
+pass	terminal --> pass
+conf	terminal --> pass
+
+List all users to see if new user is created
+	terminal --> cat /etc/passwd
+
+Show groups 
+	terminal --> cat /etc/group
+
+Show groups for specific user
+	terminal --> group <username>
+
+Create group
+	root_user/terminal --> addgroup <group_name>	// in alpine
+	root_user/terminal --> groupadd <group_name>	// in ubuntu
+
+Switch user
+	terminal --> su <username>
+
+List all files with storage addresses
+	terminal --> ls -li
+
+List all files with rwites for current user
+	terminal --> ls -la
+
+Add files
+	terminal --> echo "this is demo file3" > demo3.txt
+	terminal --> echo "this is demo file4" > demo4.txt
+	terminal --> > demo5.txt
+
+Create soft copy of a file
+	terminal --> ln -s demo3.txt soft-demo3.txt
+		      -soft source_name target_name
+
+Create hard copy of a file. if one of the copies are deleted the other continue to exist
+	terminal --> ln <file_name>
+
+List all files
+	terminal --> ls -la
+	terminal --> ls -li	# list storgae addresses also
+
+-------------
+Access Rights
+-------------
+
+
+List all files
+	terminal --> ls -la	
+
+Example for CLI view
+rights	    references  owner	group		file_name
+------------------------------------------------------------
+rwxr-xr-x	2 	danio	danio		demo.txt
+...
+------------------------------------------------------------
+
+Exploanation from presentation
+Permissions 	Octal Mask 	Description			// Octa Mask - 666 = rw- rw- rw-
+--------- 	000 		No permissions					     420/420/420
+rw-rw-rw- 	666 		Everyone read + write				     6   6   6
+rwxr-xr-x 	755 		Owner full access, others read + execute
+rwxrwxrwx 	777 		Everyone read, write, and execute		# full rights - 777
+
+
+1/222/333/444
+
+1 - file type			# d - dir, l - file
+2 - Owner's permissions
+3 - group permissions
+4 - every ones else
+
+rwx
+
+r - read
+w - write
+x - delete
+
+How to change rights - https://chmod-calculator.com/
+	terminal --> 644 <filename/dirname>
+
+
+WE CAN SET RIGHTS FOR FILES AND DIRECTORIES. THERE ARE DIFFERENCES FOR FOLDERS AND FILES
+-----
+FILES
+-----
+	READ
+	- Allow a user to view the contents of a file
+
+	WRITE
+	- Allow a user to modify and delete the file
+
+	EXECUTE
+	- Allow a user to execute a file (the user must also have read permission)
+
+-----------
+DIRECTORIES
+-----------	
+	READ
+	- Allow a user to view the names of files in a directory
+
+	WRITE
+	- Allow a user to delete the directory, modify its contents and modify the contents of files that the user can read
+
+	EXECUTE
+	- Allow a user to access, or traverse into, a directory and access metadata about files in it 
+
+
+
+----------------------------------------
+HOW TO CREATE SCRIPT FILE AND EXECUTE IT
+----------------------------------------
+We can use AI to generate script that print yes if specific date is current like the script we use below.
+
+Install nano - file editor
+	terminal --> apk add nano
+
+Go to temp folder
+	terminal --> cd /tmp
+
+Create script.sh file
+	terminal --> > script.sh
+
+Edit scripts.sh file
+	terminal --> nano script.sh
+
+Paste the script in the file with Ctrl + Shift + v
+---------------------------------
+#!/bin/bash
+
+# Get current date
+current_date=(date +%d)
+
+# Get the current date
+if [[ "$current_date" == "31" ]]; then
+    echo "yes"
+else
+    echo "no"
+fi
+---------------------------------
+
+Save changes
+	Ctrl + x, y, enter
+
+
+We can visualize the content of the file
+	terminal --> cat script.sh
+
+We can execute the file
+	terminal --> ./script.sh
+	# we dont have rights to do so
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the file have no rights for exec
+
+Change rights of the file to have execute
+	terminal --> chmod 700 script.sh
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the file now have rights for exec - 4th symbol is 'x'
+
+Now we can execute it
+	terminal --> ./script.sh
+
+We can change the date in the if statement in the script to check if works properly with both results
+
+
+-------------
+CHANGE RIGHTS
+-------------
+
+Add execute rights to all users
+	terminal --> chmod +x script.sh
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the file have 4th, 7th and 10th symbol 'x'
+
+Remove execute rights
+	terminal --> chmod -x script.sh
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the file 4th, 7th and 10th symbol is '-'
+
+Add user rights
+	terminal --> chmod u+rwx script.sh
+
+Remove rights for read, write and execute to current user
+	terminal --> chmod u-rwx script.sh
+
+Change owner
+	terminal --> chown <username> <filename>
+
+Change owner and group
+	terminal --> chown <usernma>.<groupname> <filename>
+
+---------------------------------------
+SUDO (SuperUser DO) Group Configuration
+---------------------------------------
+
+
+Example for alpine - not finished
+----------------------------------
+Install sudo 
+	terminal --> apk add sudo
+
+Show group sudoers members
+	terminal --> cat /etc/sudoers
+
+Add new user
+	terminal --> adduser danio
+	pass1: passdan123
+	pass2: passdan123
+
+Add user danio to sudo group
+	terminal --> adduser danio wheel
+
+Show sud ogroup users
+	terminal --> groups danio
+	result: danio wheel	# the user is added to sudo group
+
+Show in which groups is root user
+	terminal --> groups root
+
+Show in whitch groups is user danio
+	terminal --> groups danio
+----------------------------------
+
+Example for ubuntu
+----------------------------------
+Create user
+	terminal --> adduser danio
+	pass1: passdan123
+	pass2: passdan123
+
+Add user danio to sudo group
+	terminal --> sudo usermod -aG sudo danio
+
+Show groups of danio user
+	terminal --> groups danio
+
+Switch to user danio
+	terminal --> su danio
+
+Print hello with user danio
+	terminal --> sudo echo "hello"
+	terminal--> passdan123
+----------------------------------
+
+
+Switch user to danio with user shell
+	terminal --> sudo su danio
+	show current user
+	terminal %/tmp --> whoami
+	# result: danio
+
+
+sudo from presentation
+# Execute commands as another user
+	terminal --> sudo -u danio whoami
+# Switch to a user
+	terminal -->  sudo su testuser
+# Switch to a user with a login shell
+	terminal -->  su - testuser
+# Execute a single command as root
+	terminal -->  sudo chmod +x hello.txt
+
+Change group of the file script.sh to danio
+	terminal --> chgrp danio script.sh
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the 4th row (the group is changed to danio)
+
+Change the file owner
+	tereminal --> chown danio script.sh
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the 3th row (the owner is changed to danio)
+
+Change the owner and the group in one line
+	terminal --> chown root:root script.sh
+
+List files in current dir
+	terminal --> la -la
+	# we can see that the 3th and 4th row (the owner and the group is changed to root)
+
+
+Commands from presentation
+▪ Change the permissions of a file or directory for all types of users
+	▪ Operations modify the user or file level permissions
+		terminal --> chmode [operations] [file/directory name]
+▪ Change file owner and group
+	terminal --> chown [options] [owner][:[group]] file
+					     ^Can be replaced with "."
+▪ Change group ownership
+	terminal --> chgrp [options] group file
+
+
+
+---------------------
+Environment Variables
+---------------------
+
+▪ Sets a new environment variable
+	terminal --> export AUTHOR=DANIO
+
+▪ List all environment variables
+	terminal --> env
+	terminal --> printenv
+
+▪ Show a single environment variable
+	terminal --> env | grep AUTHOR
+	terminal --> printenv AUTHOR
+	terminal --> echo $AUTHOR
+
+▪ Create new file demo.sh
+	terminal --> > demo.sh
+
+▪ Edit the file
+	terminal --> nano demo.sh
+	add 'echo hello $AUTHOR'
+
+▪ Set execute rights to the file
+	terminal --> chmod +x demo.sh
+
+▪ Check rights of the file
+	terminal --> la -la
+
+▪ Execute the file
+	terminal --> ./demo.sh
+	# result should be: hello DANIO
+
+----------------------------------------
+CREATE SCRIPT WITH REQUIRED USER AGUMENT
+----------------------------------------
+
+Create file demo2.sh
+	terminal --> > demo2.sh
+
+Edit the file and add script with user input
+	terminal --> nano demo2.sh
+----------------------------------
+#!/bin/sh
+
+# Check if an argument is provided
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <your_value>"
+    exit 1
+fi
+
+# Assign the argument to a variable
+AUTHOR="$1"
+
+# Print the variable
+echo "The AUTHOR is: $AUTHOR"
+----------------------------------
+Save changes
+	CTRL + X, y, enter
+
+Change execute rights for demo2.sh
+	terminal --> chmod +x demo2.sh
+
+Check the rights of the file
+	terminal --ls -la
+
+Execute the script
+	terminal --> ./demo2.sh DANIO
+	result: The AUTHOR is DANIO
+
+
+------------------
+Secure Shell (SSH) - remote desktop usage
+------------------
+
+In Play with Docker console
+	- ADD NEW INSTANCE (second one)
+	- from second one connect to the first one
+		2nd instance terminal --> ssh 192.168.0.8		# the ip of the first instance
+			     terminal --> yes
+
+	- list all files. We should see demo.sh and demo2.sh
+		terminal --> ls -la
+	
+	- logout
+		terminal --> exit
+
+▪ Secure Shell (ssh) allows connecting to a remote machine's console
+	terminal --> ssh 192.168.0.28 –l root
+
+
+---------
+Processes
+---------
+
+List all active processes
+	terminal --> top
+	terminate top with "Ctrl + c"
+
+Show snapshot of jobs/rpcesses
+	terminal --> ps
+
+Start sleep job/rpocess in backgroun (background mode - &)
+	terminal --> sleep 100 &
+
+Show jobs
+	terminal --> jobs
+
+Kill process (PID reqired - process_id)
+	terminal --> kill PID			# PID is PROCESS_ID we can see all ids with terminal --> ps
+
+Show all signals for killing process - 
+	terminal --> kill -l			# show all signals for killing processes in ubunto. not working in alpine
+	
+Kill process example
+	terminal --> kill -15 PID
+-------------------------------------------------------
+1) SIGHUP 2) SIGINT 3) SIGQUIT 4) SIGILL
+5) SIGTRAP 6) SIGABRT 7) SIGBUS 8) SIGFPE
+9) SIGKILL 10) SIGUSR1 11) SIGSEGV 12) SIGUSR2
+13) SIGPIPE 14) SIGALRM 15) SIGTERM 17) SIGCHLD
+18) SIGCONT 19) SIGSTOP 20) SIGTSTP 21) SIGTTIN
+22) SIGTTOU 23) SIGURG 24) SIGXCPU 25) SIGXFSZ
+26) SIGVTALRM 27) SIGPROF 28) SIGWINCH 29) SIGIO
+30) SIGPWR 31) SIGSYS 34) SIGRTMIN 35) SIGRTMIN+1
+36) SIGRTMIN+2 37) SIGRTMIN+3 38) SIGRTMIN+4 39) SIGRTMIN+5
+40) SIGRTMIN+6 41) SIGRTMIN+7 42) SIGRTMIN+8 43) SIGRTMIN+9
+44) SIGRTMIN+10 45) SIGRTMIN+11 46) SIGRTMIN+12 47) SIGRTMIN+13
+48) SIGRTMIN+14 49) SIGRTMIN+15 50) SIGRTMAX-14 51) SIGRTMAX-13
+52) SIGRTMAX-12 53) SIGRTMAX-11 54) SIGRTMAX-10 55) SIGRTMAX-9
+56) SIGRTMAX-8 57) SIGRTMAX-7 58) SIGRTMAX-6 59) SIGRTMAX-5
+60) SIGRTMAX-4 61) SIGRTMAX-3 62) SIGRTMAX-2 63) SIGRTMAX-1
+64) SIGRTMAX
+-------------------------------------------------------
+
+Commands from presentation
+
+▪ Display status of jobs
+	terminal --> jobs [options] [jobspec]
+
+▪ Report a snapshot of the current processes
+	terminal --> ps [options]
+
+▪ Send a signal to a job or process
+	terminal --> kill [options] pid | jobspec
+
+▪ Kill processes by name
+	terminal --> killall [options] process
+
+
+-------------------
+More Linux Commands
+-------------------
+
+We can Install more iterative interface - mc
+	terminal --> apt install mc	# in ubuntu
+	terminal --> apk add mc		# in alpine 
+	type 'exit' to terminate mc
+
+===
+apt/apk - package manager		apt for Ubuntu, apk for Alpine
+===
+
+▪ apt provides a high-level command line interface for the package management system
+	terminal --> apt install <package>
+
+▪ Download package information from all configured sources
+	terminal --> apt update		# download updates
+
+▪ Install available upgrades of all packages, currently installed on the system, from the configured sources
+	terminal --> apt upgrade	# start installation of the updates. 
+
+!!! We must be carefull of upgrades with working software !!!
+	
+
+=============
+Data Fetching
+=============
+
+----
+wget - download files from internet
+----
+
+Download file
+	terminal --> wget -O file_name URL	# cap 'o' - the letter, not '0' the digit
+	# content is saved in the file_name file
+
+List files
+	terminal --> ls -la
+
+Open the file
+	terminal --> cat file_name
+
+----
+curl - make request to remote server
+----
+
+Make request to URL address
+	terminal --> curl URL
+
+Example for saving URL request
+	terminal --> curl https://some.site.com | grep "John" > john.txt
+	# this command will filter all data with with 'John' from the URL and save it in john.txt file locally
+	
+	show data
+	terminal --> cat john.txt
+	
+	curl help
+	terminal --> curl --help
+
+
+Commands from presentation
+
+▪ wget == free utility for non-interactive download of files from the Web
+	terminal --> wget [options] URL
+
+▪ curl == tool for transferring data from or to a server
+	terminal --> curl [options] URL
+
+
+===================
+	LAB
+===================
+
+
+Show environment exploaration exploaration process
+	terminal --> set | less
+
+List parameters
+	terminal --> set -o
+	terminal --> set +o	# for re-use
+
+Change the flag for what inforation is returned after command is executed
+	terminal --> set -x
+
+Show current dir
+	terminal --> pwd
+
+List all files and folders
+	terminal --> ls -la
+
+Deactivate extra mode
+	terminal --> set +x
+
+Show help menu
+	terminal --> help | less
+
+Show command help
+	terminal --> help cd | less
+
+Show 'ls' help
+	terminal --> ls --help
+
+
+
+
+

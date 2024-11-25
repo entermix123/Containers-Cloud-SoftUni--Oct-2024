@@ -1,0 +1,389 @@
+INSTALL DOCKER 
+- follow 03-Docker-Desktop-Installation-Guide from the resources
+
+
+======================
+File System and Volume
+======================
+
+-------------------------
+Manage data in containers
+-------------------------
+
+Start container with volume
+	terminal --> docker run -p 5001:80 -d --name danio -v C:\danio_volumes:/app nginxdemos/hello
+	# -p 5001:80 			- set port
+	# -d 				- detached mode
+	# --name danio 			- give name to the container
+	# -v C:\danio_volumes:/app	- address for volume, /app is the folder that will be created
+
+Show all running containers
+	terminal --> docker ps
+
+Enter in the container in interactive mode
+	terminal --> docker exec -it danio /bin/sh
+
+Show container content
+	container terminal --> ls -la
+	# we can see that the folder 'app' is available
+
+Enter the 'app' directory and create new file
+	container terminal --> cd app
+	container terminal --> echo "hello from container" > container.txt
+
+	# after we create the file, he should appear in C:\danio_volumes on our computer
+
+Create new file from windows explorer
+	- right click / new file / text Document / computer
+	- enter "hello from computer" and save it
+
+Go to container terminal, list files and open computer.txt
+	container terminal --> ls -la
+	container terminal --> cat computer.txt
+
+	# the result should be 'hello from computer'
+
+Exit the container terminal
+	containter terminal --> exit
+
+Stop the container and delete it
+	terminal --> docker stop danio
+	terminal --> docker rm danio
+
+Now the container is deleted but the data is stored on our computer in C:\danio_volumes
+
+Start container from the same image and enter in it in interactive mode, go to 'app' folder and check if all files exists
+	terminal --> docker run -p 5001:80 -d --name danio -v C:\danio_volumes:/app nginxdemos/hello
+	terminal --> docker exec -it danio /bin/sh
+	container terminal --> cd app
+	container terminal --> ls -la
+
+	# the files should be listed in the console
+
+Exit the container, stop it and delete it
+	containter terminal --> exit
+	terminal --> docker stop danio
+	terminal --> docker rm danio
+	
+
+----------------------------
+Manage volumes in containers
+----------------------------
+
+Show doker volume commands
+	terminal -- docker volume
+
+List all docker columes
+	terminal --> docker volume ls
+
+Create new volume
+	terminal --> docker volume create danio_volume
+
+List all docker columes
+	terminal --> docker volume ls
+	# danio_volume should be available
+
+Show information about specific volume
+	terminal --> docker volume inspect danio_volume
+
+Start container and map the volume danio_volume that we created
+	terminal --> docker run -p 5001:80 -d --name danio -v danio_volume:/app nginxdemos/hello
+
+Enter in the container in interactive mode, go to 'app' folder and create file vol1.txt with some text and exit the container
+	terminal --> docker exec -it danio /bin/sh
+	container terminal --> cd app
+	container termianl --> echo 'hello from volume' > vol1.txt
+	container terminal --> exit
+
+# Now we can check in Docker Desktop for the created volume content
+	Docker Desktop / Volumes / danio_volume
+
+Remove specific volume
+	terminal --> docker volume rm <volume_name>
+
+
+===================
+	LAB
+===================
+
+
+Basic commands
+	terminal --> docker pull [image]			# downoad image
+	terminal --> docker run -d [image] 			# start container, use '-d' to start in background mode
+	terminal --> docker images				# list images
+	terminal --> docker ps					# list containers
+	terminal --> docker logs [container]			# show logs for specific container
+	terminal --> docker exec -it [container] /bin/sh	# enter in interactive mode in container and start shell
+
+	# When we enter in specific container we can manage it with Linux commands
+		Check OS	
+			container terminal --> cat /etc/os-release
+
+		Check dir content
+			container terminal --> ls -la
+	
+		Exit interactive mode of the container
+			container terminal --> exit
+
+
+-------------------------
+1. NGINX Server Container
+-------------------------
+
+Pull NGINX image
+	terminal --> docker pull nginxdemos/hello
+
+List images
+	terminal --> docker images
+
+Start container and make it available on localhost:5000, also in detached mode and give it a name
+	terminal --> docker run -p 5000:80 -d --name code_it_up nginxdemos/hello
+	
+List all containers (running na dstopped, only running use terminal --> docker ps)
+	terminal --> docker ps -a
+
+Show the logs of specific container
+	terminal --> docker logs <first_4_symbols_of_container_id>
+
+Enter real time logs
+	terminal --> docker logs <first_4_symbols_of_container_id> -f
+	
+
+	# we can see the logs from docker desktop. Go to container details and we can access
+		- Logs
+		- Exec - interactive mode - we can manage container with commands
+
+Stop container
+	terminal --> docker stop <first_4_symbols_of_container_id>
+
+Delete container
+	terminal --> docker rm <first_4_symbols_of_container_id>
+
+Remove image
+	terminal --> docker rmi nginxdemos/hello
+
+	# remove image na dconnected container ('-f' - force)
+	terminal --> docker rmi nginxdemos/hello -f
+
+
+
+--------------------------
+2. Vue.js App in Container
+--------------------------
+
+Install Node.js - https://nodejs.org/en
+
+Create folder in suitable location and open it in VS Code
+
+Install Vue.js
+	terminal --> npm i -g @vue/cli-init
+	# npm 		- node package manager
+	# -g		- global
+
+Initialize Vue template project in suitable folder
+	terminal --> vue init browserify MyWebsite
+	For every asked question, answer with 'y' and press enter
+
+Initialization example console process
+----------------------------------------------------
+? Project name mywebsite
+? The version of the package 0.1.0
+? Project description A Vue.js project
+? Author user_name <email>
+? Vue build standalone
+? Use ESLint to lint your code? Yes
+? Setup unit tests with Karma + Jasmine? Yes
+----------------------------------------------------
+
+
+Open the project in Visual Studio Code
+	- install VS Code  - https://code.visualstudio.com/
+	- open the project folder / open in terminal / terminal --> code .
+
+Install dependencies in VS Code
+	terminal --> npm install
+
+In package.json change line 9 to set serving address of the
+----------------------------------------------------
+  "serve": "http-server -o -c 1 -a 0.0.0.0",
+----------------------------------------------------
+
+Start the app
+	terminal --> npm run dev
+
+Open the app in browser - http://localhost:8080/
+
+Stop the app
+	terminal --> Ctrl + C
+
+Download Docker image Node 20
+	terminal --> docker pull node:20
+	
+Start the app in container
+
+project folder CMD terminal --> docker run -d -p 9090:8080 --name danio_vue_app -v %cd%:/app -w /app node:20 npm run serve
+project folder Shell terminal --> docker run -d -p 9090:8080 --name danio_vue_app -v ${PWD}:/app -w /app node:20 npm run serve
+
+	# docker run			- start container
+	# -it				- interactive mode - allow us to interact with containers with commands
+	# -d 				- detached mode / it can be used without interactive mode
+	# -p 9090:8080			- we can access the app on browser port 9090, in teh container it works on 8080
+	# --name danio_vue_app		- give the container name 'danio_vue_app'
+	# -v %cd%:/app			- set current dir for working (root) directory
+	# -w /app			- set user working/starting dir to '/app'
+	# node:20 			- use node
+	# npm run serve			- start the app 
+
+We can enter in interactive mode in container with shell
+	terminal --> docker exec -it danio_vue_app /bin/sh
+	container terminal --> pwd			# show current dir	
+	container terminal --> ls -la			# list current dir
+	container terminal --> exit			# exit the container interactive mode
+
+# if we want to start the app from whatever location we have to change %cd% to the specific folder with the app
+terminal --> docker run -it -p 9090:8080 --name danio_vue_app -v E:\Courses\2. Vue.js App in Container\MyWebsite:/app -w /app node:20 npm run serve
+
+We can access the app in browser on http://localhost:9090/
+
+
+-----------------------
+3. MongoDB in Container
+-----------------------
+
+Download mongo image
+	terminal --> docker pull mongo
+
+Create folder with name MongoDB and create another folder 'data' inside
+
+Navigate to MongoDB folder
+	terminal --> cd MongoDB
+
+
+Example with mapping folder - not recommended
+==============================================
+
+Start container for mongo on multiple lines
+	PS terminal --> docker run `
+			-p 27017:27017 `
+			-v ${PWD}/data:/data/db `
+			-d `
+			-e MONGO_INITDB_ROOT_USERNAME=mongoadmin `
+			-e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass `
+			mongo
+
+
+	CMD terminal --> docker run ^
+			-p 27017:27017 ^
+			-v "%cd%/data:/data/db" ^
+			-d ^
+			-e MONGO_INITDB_ROOT_USERNAME=mongoadmin ^
+			-e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass ^
+			mongo
+
+One line command and map directory (not recommended. use volume instead, after this example)
+	CMD project location terminal --> docker run -p 27017:27017 -v mongo_db:/data/db -d -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass mongo
+
+	PS project location terminal --> docker run -p 27017:27017 -v mongo_db\data:/data/db -d -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass mongo
+
+Download and install Mongo Compass (Mongo client) - https://www.mongodb.com/try/download/compass
+	- Advanced Connection Options / Authentication
+		- Username: mongoadmin
+		- Password: mongoadminpass
+	- Save & Connect
+
+	- Add new DB
+		- press '+' sign on right of localhost:27017
+			- Database Name: weather_db
+			- Collection weather
+		- Create Database
+
+	- We can import JSON format dataset to test connection
+		- download this file - https://github.com/neelabalan/mongodb-sample-dataset/blob/main/sample_weatherdata/data.json
+		- import it in mongo
+
+Enter mongo container in interactive mode and navigate to mapped data folder '/etc/mongo'
+	terminal --> docker exec -it <container_id> /bin/sh
+	container terminal --> cd /etc/mongo
+	
+	- check if we are in the right folder
+	container terminal --> pwd
+
+	- list data
+	container terminal --> ls -la
+	# data must be there, file 
+		- -rw------- 1 mongodb mongodb 2514944 Nov 18 20:28 collection-0-12480565396637847686.wt
+
+
+example with mapping volume - recommended
+=========================================
+
+Create docker volume
+	terminal --> docker volume create mongo_db
+
+Show created volume
+	terminal --> docker volume ls
+
+Start container for mongo on multiple lines and map data with volume (recommended)
+	PS terminal --> docker run `
+			-p 27017:27017 `
+			-v mongo_db:/data/db `
+			-d `
+			-e MONGO_INITDB_ROOT_USERNAME=mongoadmin `
+			-e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass `
+			mongo
+
+
+	CMD terminal --> docker run ^
+			-p 27017:27017 ^
+			-v mongo_db:/data/db ^
+			-d ^
+			-e MONGO_INITDB_ROOT_USERNAME=mongoadmin ^
+			-e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass ^
+			mongo
+
+One line command and map directory (not recommended. use volume instead, after this example)
+	CMD project location terminal --> docker run -p 27017:27017 -v mongo_db:/data/db -d -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass mongo
+
+	PS project location terminal --> docker run -p 27017:27017 -v mongo_db:/data/db -d -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass mongo
+
+Download and install Mongo Compass (Mongo client) - https://www.mongodb.com/try/download/compass
+	- Advanced Connection Options / Authentication
+		- Username: mongoadmin
+		- Password: mongoadminpass
+	- Save & Connect
+
+	- Add new DB
+		- press '+' sign on right of localhost:27017
+			- Database Name: weather_db
+			- Collection weather
+		- Create Database
+
+	- We can import JSON format dataset to test connection
+		- download this file - https://github.com/neelabalan/mongodb-sample-dataset/blob/main/sample_weatherdata/data.json
+		- import it in mongo
+
+Enter mongo container in interactive mode and navigate to mapped data folder '/etc/mongo'
+	terminal --> docker exec -it <container_id> /bin/sh
+	container terminal --> cd /etc/mongo
+	
+	- check if we are in the right folder
+	container terminal --> pwd
+
+	- list data
+	container terminal --> ls -la
+	# data must be there, file 
+		- -rw------- 1 mongodb mongodb 2514944 Nov 18 20:28 collection-0-12480565396637847686.wt
+
+
+
+We can stop and delete mongo container and test connection with Compass (mongo client)
+
+In Mongo Compass we can disconnect and try to connect again,b ut we can't.
+
+If we satrt the container again
+	terminal --> docker run -p 27017:27017 -v mongo_db:/data/db -d -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=mongoadminpass mongo
+
+We can now reconnect and the imported data will be available
+
+
+

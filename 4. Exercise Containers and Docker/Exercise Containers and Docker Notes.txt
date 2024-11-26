@@ -1,0 +1,65 @@
+
+==========================
+1. Lightstreamer Container
+==========================
+
+Download image and start container
+	terminal --> docker run -d -p 80:8080 --name ls-server lightstreamer:latest
+
+Stop and delete container and image
+
+
+==================
+2. Ghost Container - NODE APP
+==================
+
+Download image and start container
+	terminal --> docker run -d -p 3001:2368 --name host-container -e NODE_ENV=development ghost:latest
+
+===============================
+3. Apache HTTP Server Container
+===============================
+
+Create folder with our data files
+	- create text file "volume.txt"
+
+List volumes and check if apache_volume is created
+	terminal --> docker volume ps
+	# search for apache_volume
+
+Download image and start container
+	CMD terminal --> docker run -d -p 8080:80 --name my-apache-app -v "E:\Courses\SoftUni Containers and Cloud Oct 2024\4. Exercise Containers and Docker\3. Apache HTTP Server Container:/usr/local/apache2/htdocs/" httpd:latest
+
+Access the app on browser - http://localhost:8080/
+
+If we add additional folders and files, they must bi visualized
+
+
+=======================
+4. SQL Server Container
+=======================
+
+Create docker volume
+	terminal --> docker volume create sqldata
+
+Download image and start container
+	terminal --> docker run -d -p 1433:1433 -v sqldata:/var/opt/mssql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=yourStrongPassword12# mcr.microsoft.com/mssql/server
+
+	# ACCEPT_EULA=Y - end user license agreement 
+
+We can connect to SQL Server with SQL Server Management Studio (client for MSSQL)
+	- https://learn.microsoft.com/de-de/sql/ssms/download-sql-server-management-studio-ssms?view=sql-server-ver16
+
+	Set connection fields in SQL Server Management Studio (client for MSSQL)
+		- Server type: Database Engine
+		- Server name: 127.0.0.1	or  	localhost
+		- Authrntication
+			- Login: sa
+			- Password: yourStrongPassword12#
+		- Encryption : Optional
+		- Connect
+
+How we can create docker-compose file from docker command
+	go to https://www.composerize.com/ and paste docker command and take docker-compose file
+
+

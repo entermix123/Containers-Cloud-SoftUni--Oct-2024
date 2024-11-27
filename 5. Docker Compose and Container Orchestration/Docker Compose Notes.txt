@@ -1,0 +1,517 @@
+Create Dockerfile
+
+In VS Code install Docker extension for easily create docker files
+
+FROM alpine:version		// we can use Ctrl+Space to suggest version
+
+Dockerfile
+---------------------------------------------
+FROM alpine
+
+RUN apk add nano
+
+EMTRYPOINT [ "echo", "hello" ]		// print hello
+---------------------------------------------
+
+
+Create curren
+	terminal --> docker build -t danio .
+
+Set version 1.00 for current build
+	terminal --> docker build -t danio:1.00 .
+
+Install nano in Linux
+	terminal --> apk add nano
+
+Start the container
+	terminal --> docker run -d danio
+
+After each change in the container we have to biold new version
+	terminal --> docker build -t danio:2.00 .
+
+Start the container
+	terminal --> docker run -d danio:2.00
+
+enter the container in interactive mode
+	terminal --> docker exec -it <container_id> /bin/sh	
+		create file
+			terminal --> touch file1.txt
+		list files
+			terminal --> ls -la
+		edit the file
+			terminal --> nano file1.txt
+
+
+
+Dockerfile
+---------------------------------------------
+FROM alpine
+
+EMTRYPOINT [ "echo", "Hello" ]		// print hello
+CMD ["World"]
+---------------------------------------------
+
+ENTRYPOINT is executed at the start of the container and cannot be changed in interactive mode
+CMD is executed script that can be changed in interactive mode
+
+Build curren
+	terminal --> docker build -t danio .
+
+Start the container
+	terminal --> docker run danio
+
+	the result will be hello World
+
+In CMD we can rewrite the commands in CMD
+	terminal --> docker run danio "Danio"
+	result: Hello Danio
+
+We can have only one defined ENTRYPOINT and one defined CMD command
+
+
+
+-----------------------
+Building a Custom Image
+-----------------------
+
+Commands
+
+▪ Build an image
+	terminal --> docker image build [OPTIONS] PATH | URL | -
+
+▪ Inspect an image
+	terminal --> docker image inspect <image_name>
+
+▪ Run a container from the image in detached mode
+	terminal --> docker run –d image
+
+▪ Push to a registry
+	terminal --> docker push {username}/{app}
+
+▪ First, login to Docker Hub
+	terminal --> docker login
+
+Open the project MYWEBSITE from the resources in VS Code
+
+Create Dockerfile in the root directory of the app
+
+Dockerfile
+---------------------------------------------
+FROM node:20		# use node 20 as base 
+
+LABEL=AUTHOR="DANIO"	# set author
+
+WORKDIR /app		# set work/root dir
+
+COPY . .		# copy all files from root app dir to image workdir
+
+EXPOSE 8080		# set posrt ot be exposed
+
+RUN npm install		# instrall dependencies
+
+ENTRYPOINT [ "npm", "run", "dev" ]	# set entrypoint with command "npm run serve"
+---------------------------------------------
+
+build image with dockerfile with version 1.0.0
+	terminal --> docker build -t <app_name>:1.0.0 .
+
+Start container
+	terminal --> docker run -d <app+name>:1.0.0
+
+Run container
+	terminal --> docker run -d -P <app_name>:version	# "-P" set random port to link to 8080
+
+connect to the container in interactive mode
+	terminal --> docker exec -it <container_name> /bin/sh
+	
+	list items
+		terminal --> ls -la
+
+	we can test conuctivity with
+		terminal --> curl localhost:8080
+
+
+Optional:
+We have to expose port for the application if there si no EXPOSE in the Dockerfile
+	terminal --> docker run -d -p 8090:8080 <app_name>:version
+
+
+---------------------------------
+BUILD AND PUSH IMAGE TO DOCKERHUB
+---------------------------------
+
+login to dockerhub in terminal
+	terminal --> docker login
+
+Create image
+	terminal --> docker build -t <app_name>:3.0.0 .
+	# -t - name/tag/vesion
+
+Rename image with tag/version
+	terminal --> docker tag <app_name>:3.0.0 <your_docker_user>/<app_name>:3.0.0
+
+List images
+	terminal --> docker images
+
+Push image to dockerhub
+	terminal --> docker push <your_docker_user>/<app_name>:3.0.0
+
+	Now in dockerhub we have newly pushed image
+
+
+
+--------------------
+CONTAINER NETWORKING
+--------------------
+
+There is no networks in Docker Desktop !!! Managed only in docker CLI !!!
+
+Types docker networks
+	- Bridge (default) 	- containers on single host
+	- Overlay 		- containers on different hosts
+
+Show networks
+	teminal --> docker network ls
+
+	there should be 3 networks
+		- bridge
+		- host
+		- none
+	# bridge is the default network for started containers
+
+List Docker networks
+	terminal --> docker network ls
+
+Pull image from your dockerhub
+	terminal --> docker pull <your_docker_user>/<app_name>:version
+
+Start container
+	terminal --> docker run -d <your_docker_user>/<app_name>:version
+
+Inspect the container to see in what network is in
+	terminal --> docker inspect <container_id>
+	
+	in NetworkSettings/Networks/network_name we can see the name of the network
+
+Inspect specific docker network
+	terminal --> docker network inspect bridge
+	
+	# we can see all containers in the inspected network
+
+We can enter the container i ninteractive mode
+	terminal --> terminal --> docker exec -it <container_name> /bin/sh
+
+Find IP address of the container
+	container terminal --> ifocnfig
+
+We can ping different contnainer from this one to test conuctivity between containers
+	container teminal --> ping <container_IP_address>
+
+
+Create custom network
+---------------------
+
+How to create our own network
+	terminal --> docker network create <network_name>
+
+List all docker networks
+	terminal --> docker network ls
+
+Start container from image in detached mode in the created custom docker network
+	terminal --> docker run -d --name <local_container_name> --network <network_name> image_repo/image_name 
+
+Start container in the default network (bridge)
+	terminal --> docker run -d --name <local_container_name> <network_name2> image_repo/image_name 
+
+Now if we connect to each one and try to pin one from the other, there will be NO connection between them
+	Enter in the first container
+		terminal --> terminal --> docker exec -it <container_name> /bin/sh
+		Find IP address
+			container terminal --> ifconfig
+			or
+			container terminal --> cat /etc/hosts
+
+	Enter in the second container
+		terminal --> terminal --> docker exec -it <container_name2> /bin/sh
+		
+		ping the first container
+			container terminal --> ping <first_container_IP_address>
+			
+			the result should be fail to ping
+
+
+======================
+Orchestration Overview
+======================
+
+-----------------------
+Container Orchestration
+-----------------------
+
+
+Benefits
+--------
+	▪ Efficiency
+		▪ Ensure that work is evenly distributed across infrastructure
+	▪ Scalability
+		▪ Handle increased load by adding more instances
+	▪ Resilience
+		▪ Ensure high availability by distributing instances
+	▪ Consistency
+		▪ Maintain desired state of the system
+
+
+Main commands
+-------------
+
+▪ Build all images
+	terminal --> docker-compose build						# common command
+
+▪ Run the containers
+	terminal --> docker-compose up
+
+▪ Or in "silent" mode (background mode)
+	terminal --> docker-compose up -d						# common command
+
+▪ Check if services are up and running
+	terminal --> docker-compose ps							# common command
+
+▪ Compose with multiple files
+	terminal --> docker-compose -f docker-compose.yml -f production.yml up -d	# common command
+
+▪ Redeploy a single service
+	terminal --> docker-compose build web
+	terminal --> docker-compose up --no-deps -d web
+
+	# --no-deps - ignores dependecies of other sevices
+
+▪ Remove everything (images, volumes, etc.)
+	terminal --> docker-compose down --rmi all --volumes
+
+
+=========================
+	Live Demo
+=========================
+
+-----------------------------------------
+1. MyWebsite App: Building a Custom Image
+-----------------------------------------
+
+Step 1: Create a Dockerfile
+---------------------------
+
+Create a folder and name it "1. MyWebsite Custom Image" and open it in VS Code
+	- paste the app from "Containers and Docker" Lecture, task 2 without node_modules folder in the current folder
+
+In VS Code install "Docker" Extension
+
+Create Dockerfile
+-------------------------------
+FROM node:16
+
+WORKDIR /app
+
+COPY . .
+
+RUN npm install
+
+CMD [ "npm", "run", "dev" ]
+-------------------------------
+
+Build image
+	project dir terminal --> docker build -t danio_app:1.0 .
+
+Start container
+	terminal --> docker run -d -p 8080:8080 --name danio_vue_app danio_app:1.0
+
+
+Create new version
+------------------
+	- make changes
+	- build the image again with new version tag
+		project dir terminal --> docker build -t danio_app:2.0 .
+
+	- start container from new image
+		terminal --> docker run -d -p 8080:8080 --name danio_vue_app danio_app:2.0
+		
+		# -d 				- detached
+		# -p 8080:8080			- set ports
+		# --name danio_vue_app 		- container name
+		# 
+
+
+Step 2: Build and Publish the Image to Docker Hub
+-------------------------------------------------
+
+Register to Docker Hub - https://hub.docker.com/
+
+Login in VS Code
+	terminal --> docker login
+
+To push docker image to docker hub we need build the image or rename it with our docker username prefix
+
+	- build the image with our dockerhub username as prefix
+		project dir terminal --> docker build -t docdanio/danio_app:2.0 .
+
+	- rename already existing image
+		terminal --> docker tag danio_app:2.0 docdanio/danio_app:2.0
+
+	# tag 				- rename
+	# danio_app:2.0			- current image name
+	# docdanio/danio_app:2.0	- renamed image name
+
+Push the image to docker hub
+	terminal --> docker push docdanio/danio_app:2.0
+
+	# Now in dockerhub we should have upladed the image docdanio/danio_app:2.0
+
+
+
+------------------------------------------------
+2. WordPress App with MySQL Database: Connecting
+------------------------------------------------
+
+Containers in a Network
+
+Create network 'my_network'
+	terminal --> docker create network my_network
+
+List docker networks and check if 'my_network' is created
+	terminal --> docker network ls
+
+Create folder named 'Wordpress' on the desktop, created 'data' folderin it
+
+Start backend container and map volume from project folder
+----------------------------------------------------------
+	CMD Wordpress dir terminal --> docker run -dit --name wordpress_db -e MYSQL_ROOT_PASSWORD=pass -e MYSQL_DATABASE=wordpressdb -e MYSQL_USER=wordpress -e MYSQL_PASSWORD=wordpress --expose 3306 --expose 33060 --network my_network -v "%cd%/data:/var/lib/mysql" mysql
+
+	PS Wordpress dir terminal --> docker run -dit --name wordpress_db -e MYSQL_ROOT_PASSWORD=pass -e MYSQL_DATABASE=wordpressdb -e MYSQL_USER=wordpress -e MYSQL_PASSWORD=wordpress --expose 3306 --expose 33060 --network my_network -v ${PWD}/data:/var/lib/mysql mysql
+
+Inspect the network
+	terminla --> docker network inspect my_network
+
+
+Start frontend container and map volume from current folder
+-----------------------------------------------------------
+	CMD project dir terminal --> docker run -dit --name workdpress-website -e WORDPRESS_DB_HOST=wordpress_db -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpressdb -v "%cd%/wp-data:/www/html" -p 80:80 --network my_network wordpress
+
+	PS project dir terminal --> docker run -dit --name workdpress-website -e WORDPRESS_DB_HOST=wordpress_db -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpressdb -v ${PWD}/wp-data:/www/html -p 80:80 --network my_network wordpress
+
+List all working containers
+	terminal --> docker ps
+
+List all containers
+	terminal --> docker ps -a
+
+Inspect the network
+	Wordpress dir terminla --> docker network inspect my_network
+
+Open the app on port 80
+	Browser --> localhost:80
+	or
+	from Docker Desktop
+
+
+
+----------------------------------------------------
+3. WordPress App with MySQL Database: Docker Compose
+----------------------------------------------------
+
+Step 1: Create a Network
+------------------------
+
+Create network 'my_network'
+	terminal --> docker create network my_network
+
+List docker networks and check if 'my_network' is created
+	terminal --> docker network ls
+
+
+Step 2: Create the docker-compose.yml file
+------------------------------------------
+
+Open project folder with VS Code and install "Docker" extension
+
+We can use the command from the last task and reformat it to docker-compose 
+	- got ot https://www.composerize.com/
+	- paste the two commands below for backend and frontend and copy the result and format it
+
+
+Backend container
+-----------------
+	CMD Wordpress dir terminal --> docker run -dit --name wordpress_db -e MYSQL_ROOT_PASSWORD=pass -e MYSQL_DATABASE=wordpressdb -e MYSQL_USER=wordpress -e MYSQL_PASSWORD=wordpress --expose 3306 --expose 33060 --network my_network -v "%cd%/data:/var/lib/mysql" mysql
+
+Frontend container
+------------------
+	CMD project dir terminal --> docker run -dit --name workdpress-website -e WORDPRESS_DB_HOST=wordpress_db -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpressdb -v "%cd%/wp-data:/www/html" -p 80:80 --network my_network wordpress
+
+docker-compose.yml result cmd
+---------------------------------------------------
+services:
+    wordpress_db:
+        # container_name: wordpress_db
+        environment:
+            - MYSQL_ROOT_PASSWORD=pass
+            - MYSQL_DATABASE=wordpressdb
+            - MYSQL_USER=wordpress
+            - MYSQL_PASSWORD=wordpress
+        networks:
+            - my_network
+        volumes:
+            - ./data:/var/lib/mysql
+        image: mysql
+    wordpress:
+        # container_name: workdpress-website
+        environment:
+            - WORDPRESS_DB_HOST=wordpress_db    # name should be exact with mysql container_name
+            - WORDPRESS_DB_USER=wordpress
+            - WORDPRESS_DB_PASSWORD=wordpress
+            - WORDPRESS_DB_NAME=wordpressdb
+        volumes:
+            - ./wp-data:/www/html
+        ports:
+            - 80:80
+        networks:
+            - my_network
+        image: wordpress
+networks:
+    my_network:
+        name: my_network
+---------------------------------------------------
+# if we remove all networks from the file, compose will automatically create newtwork for us
+We can check docker-compose validation on https://www.yamllint.com/
+
+
+Build docker-compose containers
+	terminal --> docker-compose build	
+	# if no error appear, the build is successful
+
+Start the containsers
+	terminal --> docker-compose up -d
+	# -d - detached mode 
+
+List working containers
+	terminal --> docker-compose ps
+
+Stop docker-compose containers
+	terminal --> docker-compose stop
+
+Remove docker-compose containers and network
+	terminal --> docker-compose down
+
+Remove containers, networks and images
+	terminal --> docker-compose down --rmi=all
+
+
+
+
+
+
+
+
+
+
+
+
+
+

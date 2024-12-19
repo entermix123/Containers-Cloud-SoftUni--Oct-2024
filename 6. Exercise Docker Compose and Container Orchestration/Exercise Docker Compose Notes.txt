@@ -1,0 +1,871 @@
+
+==========================================
+1. *MariaDB Client and Server in a Network
+==========================================
+
+Create docker network
+	terminal --> docker network create mariadb_network
+
+Check if the network is successfuly created
+	terminal --> docker network ls
+
+Download MariaDB image and start container in the network we've created
+	terminal --> docker run -d --name mariadb_server -e MARIADB_USER=mariadb_user -e MARIADB_PASSWORD=my_cool_secret -e MARIADB_DATABASE=exmple_db_name -e MARIADB_ROOT_PASSWORD=my-secret-pw --network mariadb_network  mariadb:latest
+
+Download and start MariaDB Client
+	terminal --> docker run -it --network mariadb_network --name mariadb_client --rm mariadb:latest mariadb -hmariadb_server -umariadb_user -p
+	# --rm 	- the command removes client container after stop (not mandatory, we can leave client container to exist)
+	# -p 	- if parrameter "-p" is not after "docker run" it sets password requirement
+	- enter pasword: my_cool_secret
+
+	Show version
+		client terminal --> SELECT VERSION();
+	
+	Exit client
+		client terminal --> exit
+
+# OPTIONAL # 
+We can connect to specific database
+	erminal --> docker run -it --network mariadb_network --name mariadb_client --rm mariadb mariadb --host mariadb_server --user mariadb_user --password --database exmple_db_name
+
+
+We can enter in the mariadb_server container in interactive mode without using external client
+	terminal --> docker exec -it mariadb_server /bin/sh
+
+	Execute the command for using the client
+		mariadb terminal --> mariadb --host mariadb_server --user mariadb_user --password --database exmple_db_name
+
+	Enter password
+		mariadb terminal --> my_cool_secret
+	
+	We should be using the client again
+
+
+
+=========================================
+2. TaskBoard App: Building a Custom Image
+=========================================
+
+Download and install Microsoft Visual Studio - https://visualstudio.microsoft.com/
+
+Open 01-03-05.TaskBoard-ASP.NET-App/TaskBoard.sln from the resources
+
+Step 1: Create a Dockerfile in Visual Studio
+--------------------------------------------
+	Solution Explorer / right click on TaskBoard.WebApp / Add / Docker Support ... / OK
+
+Visual Studio will generate and run Dockerfile. Wait until finish. and delete the running container
+
+Open Development Command Prompt or use Developer PowerShell
+	Tools / Command Line / Development Command Prompt
+
+Build the image
+	terminal --> docker build -t taskboard -f .\TaskBoard.WebApp\Dockerfile .
+
+	# docker build 				- build image
+	# -t taskboard				- name of the image	
+	# -f .\TaskBoard.WebApp\Dockerfile	- dir with Dockerfile
+	# .					- current directory context
+
+Step 2: Build and Publish the Image to Docker Hub
+-------------------------------------------------
+In order to push image to Dockehub we need to build the image with our dockerhub username as prefix or rename the already created image
+
+Login to docker
+	terminal --> docker login
+
+We can build the image again
+	project dir terminal --> docker build -t docdanio/taskboard:1.0.0 -f .\TaskBoard.WebApp\Dockerfile .
+
+We can rename the image and set a version
+	terminal --> docker tag taskboard docdanio/taskboard:1.0.0
+
+Check if the image is created
+	terminal --> docker images
+
+Push the image to dockerhub
+	terminal --> docker push docdanio/taskboard:1.0.0
+
+
+If we go to our dockerhub repository, we should have this image uploaded
+
+
+==============
+3. Tracker App
+==============
+
+Download and install VS Code - https://code.visualstudio.com/
+
+Open 02.Tracker-App from the resources in VS Code
+
+In VS Code install "Docker" extension for easily working with dockerfiles
+	- Go to extensions (Ctrl + Shift + x)
+	- Search for "Docker" and install extension
+
+Build the image with your dockerhub account as prefix and give it a version
+	terminal --> docker build -t docdanio/trackerapp:1.0.0 .
+
+Start container from the image
+	terminal --> docker run -d -p 80:80 --name tracker_app docdanio/trackerapp:1.0.0
+	
+	# -d 				- detached mode
+	# -p 80:80			- set port
+	# --name tracker_app		- name the container
+	# docdanio/trackerapp:1.0.0	- set the image we want to use to start the container
+
+We can opent the app in browser on localhost:80
+
+Push the image to our docker hub repository
+	terminal --> docker push docdanio/trackerapp:1.0.0
+
+If we go to our dockerhub repository, we should have this image uploaded
+
+
+
+=================================================
+4. TaskBoard App: Connect Containers in a Network
+=================================================
+
+Step 1: Create a Network
+------------------------
+
+Create a custom docker network "taskboard_network"
+	terminal --> docker network create taskboard_network
+
+List docker network and check if "taskboard_network" is successfuly created
+	terminal --> docker network ls
+
+
+Step 2: Create and Connect a SQL Server Container
+-------------------------------------------------
+
+Create docker volume
+	terminal --> docker volume create sqldata
+
+List volumes and check if "sqldata" is created successfuly
+	terminal --> docker volume ls
+
+Download image and start container for sql server
+	terminal --> docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=StrongPass@danio123 -p 1433:1433 --volume sqldata:/var/opt/mssql --rm --network taskboard_network --name sqlserver -d mcr.microsoft.com/mssql/server
+
+	# docker run					- start container
+	# -e ACCEPT_EULA=Y				- accept End-User License Agreement
+	# -e MSSQL_SA_PASSWORD=StrongPass@danio123	- sql user password
+	# -p 1433:1433					- user_access_port:container_port
+	# -v sqldata:/var/opt/mssql			- map docker volume with container directory
+	# --rm						- remove container after stop
+	# --network taskboard_network			- connect to docker network taskboard_network
+	# --name sqlserver				- container name
+	# -d						- detached mode (background)
+	# mcr.microsoft.com/mssql/server		- image of sql server
+
+
+Step 3: Create and Connect a TaskBoard App Container
+----------------------------------------------------
+
+Oprn the app '4. TaskBoard App: Connect Containers in a Network' in Microsoft Visual Studio
+
+Open TaskBoard.WebApp / appsettings.json and change line 3 to
+------------------------------------------
+    "DefaultConnection": "Server=sqlserver;Database=MyDB;User Id=sa;Password=StrongPass@danio123;MultipleActiveResultSets=true;"
+------------------------------------------
+- save changes (Ctrl + s)
+
+
+Step 4: Containers Together
+---------------------------
+
+Build new image of TaskBoard app with new version (:2.0.0) for the changes
+	project dir terminal --> docker build -t docdanio/taskboard:2.0.0 -f .\TaskBoard.WebApp\Dockerfile .
+
+Start container for web_app (client)
+	terminal --> docker run -p 5000:80 --rm --network taskboard_network --name web_app -d docdanio/taskboard:2.0.0
+
+If we cannot access the app in browser on http://localhost:5000/, wait until sqlserver initialize and then start web_app
+
+
+
+===========
+5. TODO App
+===========
+
+Open 04.TODO-App in VS Code from the resources
+
+Create 2 docker networks
+	terminal --> docker network create react-express
+	terminal --> docker network create express-mongo
+
+Check if the networks are created successfuly
+	terminal --> docker network ls
+
+Download latest mongi image
+	terminal --> docker pull mongo
+
+Create images from Dockerfile for backend and frontnend
+	project dir terminal --> docker build -t backend_image ./backend
+	project dir terminal --> docker build -t frontend_image ./frontend
+
+	# docker build 				- build image
+	# -t backend_image / frontend_image	- name the image
+	# ./backend / ./frontend		- location of the Dockerfile from current location
+
+Start mongo container
+---------------------
+	terminal --> docker run -d -p 27017:27017 --network express-mongo --name mongo -v ./data:/data/db mongo
+
+	# docker run 					- start container
+	# -d 						- detached mode
+	# -p 27017:27017				- DB ports
+	# --network express-mongo			- connect container to network express-mongo
+	# --name mongo					- name the container
+	# -v ./data:/data/db				- map volume
+	# mongo						- used image
+
+We can search for connected settings in the BE 
+	VS Code / Ctrl + Shift + f, search for 'mongo'	- search in all files
+	- check if we have user and password settings requirements (in this case we don't)
+
+
+Start containers for backend (BE)
+---------------------------------
+	terminal --> docker run -d --network react-express --network express-mongo --name backend backend_image
+
+	# docker run 					- start container
+	# -d 						- detached mode
+	# --network react-express			- connect container to network react-express	
+	# --name backend				- name of the container	
+	# backend_image					- used image
+
+Inspect express-mongo network and confirm correct entities
+	terminal --> docker network inspect express-mongo	# here we must have backend and mongo containers
+
+# OPTIONAL #
+Manually add container to specific network if not added
+	terminal --> docker network connect express-mongo backend
+
+	# docker network 			- manage docker networks
+	# connect				- connext entity
+	# express-mongo				- name of the network
+	# backend				- container we want to connect
+
+
+Start containers for frontend (FE)
+----------------------------------
+	terminal --> docker run -d -p 3000:3000 --network react-express --name frontend frontend_image
+
+	# docker run 					- start container
+	# -d 						- detached mode
+	# -p 3000:3000					- client port 3000 : container port 3000
+	# --rm						- remove container if stopped (not mandatory)
+	# --network react-express			- connect container to network react-express	
+	# --name frontend				- name of the container
+	# frontend_image				- used image
+
+Inspect react-express network and confirm correct entities
+	terminal --> docker network inspect react-express	# here we must have backend and frontend containers
+
+Check if all containers are running 
+	terminal --> docker ps		# we should see 3 images running
+
+
+
+==============================================================
+6. TaskBoard App: Orchestrating Containers with Docker Compose
+==============================================================
+
+Step 1: Build a YAML File
+--------------------------
+
+Open the project in VS Code (not in Microsoft Visual Studio, because we already have Dockerfile generated)
+
+In main project dir create docker-compose.yml file
+
+docker-compose.ym
+-----------------------------------------------
+---
+services:
+  sqlserver:
+    container_name: sqlserver
+    image: mcr.microsoft.com/mssql/server
+    networks:
+      - taskboard_network
+    ports:
+      - 1433:1433
+    volumes:
+      - sqldata:/var/opt/mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=StrongPass@danio123
+  web_app:
+    container_name: web_app
+    build:
+      dockerfile: ./TaskBoard.WebApp/Dockerfile
+    ports:
+      - 5000:80
+    restart: on-failure
+    networks:
+      - taskboard_network
+    depends_on:
+      - sqlserver
+volumes:
+  sqldata:
+networks: 
+  taskboard_network:
+-----------------------------------------------
+save file - Ctrl + s
+
+
+Step 2: Run the YAML File
+-------------------------
+
+Build the web_app image
+	project dir terminal --> docker compose build
+
+Start compose
+	project dir terminal --> docker compose up -d
+
+We can stop and delete compose containers
+	project dir terminal --> docker compose down
+
+
+Now we can access the app on browser: http://localhost:5000/
+
+
+Step 3: Debug the Web App
+-------------------------
+
+Modifi Dockerfile.
+	- change line 12 and 23
+-----------------------------
+ARG BUILD_CONFIGURATION=Debug
+-----------------------------
+	- save changes - Ctrl + s
+
+Start compose again
+	project dir terminal --> docker compose up -d
+
+Attach to the container and debug the app
+	- open the project in Microsoft Visual Studio
+	- Debug / Attach to process
+		- Container type: Docker (Linux Container)
+		- Container target: web_app / Find..
+	- choose process: dotnet 
+	- Code type: Managed (.NET Core for Unix) code
+	- press 'Attach' button
+
+Open file TaskBoard.WebApp / Controllers / HomeController.cs and set breakpoint on line 23
+
+We can now debug the app if needed.
+
+Stop and delete compose containers
+	project dir terminal --> docker compose down
+
+
+===============
+8. Reseller App
+===============
+
+Install java - https://www.java.com/download/ie_manual.jsp
+
+Check if java is installed properly
+	terminal --> java --version
+
+Install Maven
+	- from - https://maven.apache.org/download.cgi
+	- search for Files section
+		- Binary zip archive - Link: apache-maven-3.9.9-bin.zip		# at the time
+	- unzip the content in Windows / Program Files
+
+Set Windows Environment Variables
+	Windows button / Edit the System zenvironments
+		- Environment Variables
+			- System Variables
+				- Path / Edit / New
+					- C:\Program Files\apache-maven-3.9.9\bin
+					- OK
+				- OK
+		- OK
+
+Check if Maven is correctly installed
+	terminal --> mvn --version
+	# the result should be maven and system version details
+
+
+Step 1: Create a Dockerfile
+---------------------------
+
+In VS Code open folder 07.Reseller-App from the resources
+
+Build the app and skip the tests
+	terminal --> mvn clean package -DskipTests
+
+	# this should create 'target' folder that we use in Dockerfile
+
+
+Add Dockerfile in app dir
+
+Dockerfile
+--------------------------------------------
+FROM openjdk:11-jre-slim
+
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT [ "java", "-jar", "/app.jar" ]
+--------------------------------------------
+Save file - Ctrl + s
+
+Build image from Dockerfile
+	terminal --> docker build -t reseller .
+
+	# docker build 			- build image
+	# -t reseller			- name of the container
+	# .				- current dir context
+
+Check if the image is created
+	terminal --> docker images
+
+
+Step 3: Create a Docker-Compose File
+------------------------------------
+
+Create docker-compose.yml file in project directory
+
+docker-compose.yml
+--------------------------------------------
+services:
+  resellerapp:
+    image: reseller
+    ports:
+      - 8080:8080
+    depends_on:
+      - mysql
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/resellerdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=my-secret-pw
+    networks:
+      - backend
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=my-secret-pw
+      - MYSQL_DATABASE=resellerdb
+      - MYSQL_USER=user
+      - MQSQL_PASSWORD=userpass
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - backend
+networks:
+  backend:
+volumes:
+  mysql-data:
+--------------------------------------------
+Save file - Ctrl + s
+
+Build compose file
+	project dir terminal --> docker compose build
+
+	# if nor error appear, then the build is successful
+
+
+
+Step 4: Run the Docker-Compose File
+-----------------------------------
+
+Start compose
+	project dir terminal --> docker compose up -d
+
+We can stop and remove containers
+	project dir terminal l--> docker compose down
+
+Wait 10-15 seconds and if all ccontainers are working try to open the app in brwoser: localhost
+
+
+
+==================
+9. Fruitipedia App
+==================
+
+In VS Code open Step 08.Simple-Page-App / SimplePageApp from resources
+
+
+Step 1: Create a Dockerfile
+---------------------------
+
+Create Dockerfile in main project directory
+
+Dockerfile
+--------------------------------------------
+FROM python:3.8-slim-buster
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY . .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY static /app/staticfiles
+
+EXPOSE 8000
+
+CMD [ "python", "manage.py", "runserver", "0.0.0.0:8000" ]
+
+# for online serving without staticfiles
+# CMD [ "gunicorn", "SimplePageApp.wsgi:application", "--bind", "0.0.0.0:8000" ]
+--------------------------------------------
+Save file - Ctrl + s
+
+Build the app
+	terminal --> docker build -t simplepageapp:1 .
+
+Check if the image is created successfully
+	terminal --> docker images
+
+We can start container and test the app
+	terminal --> docker run -d -p 8000:8000 simplepageapp:1
+
+
+Step 2: Create a Docker-Compose File
+------------------------------------
+
+Create docker-compose.yml file in the main project dir
+
+docker-compose.yml
+--------------------------------------------
+version: '3.8'
+
+services:
+  web:
+    build: .
+    volumes:
+      - ./static:/app/staticfiles
+    ports:
+      - 8000:8000
+    environment:
+      - DEBUG=False
+--------------------------------------------
+Save file - Ctrl + s
+
+
+Step 3: Build and Run the Docker Container
+------------------------------------------
+
+Run docker-compose file
+	terminal --> docker compose up --build -d
+
+Test the app on browser: http://localhost:8000/
+
+We can stop and remove containers
+	project dir terminal l--> docker compose down
+
+
+
+====================
+7. Blue VS Green App
+====================
+
+Download Redis image
+--------------------
+	terminal --> docker pull redis
+
+Download PostgreSQL image 
+-------------------------
+	terminal --> docker pull postgres
+
+Open '06.Blue-VS-Green-App' from resources in VS Code
+
+
+Build Result app
+----------------
+	project dir terminal --> docker build -t result ./result
+	
+	# docker build 				- build image command
+	# -t result 				- name the image
+	# ./result				- dir with Dockerfile context
+
+
+Create docker networks (backend and frontend)
+---------------------------------------------
+	terminal --> docker network create backend
+	terminal --> docker network create frontend
+
+
+
+Create Dockerfile for Vote app (python)
+---------------------------------------
+
+Dockerfile
+--------------------------------------------
+# Using official python runtime base image
+FROM python:3.9-slim
+
+# Set the application directory
+WORKDIR /app
+
+# Install our requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache -r requirements.txt
+
+# Copy our code from the current folder to /app inside the container
+COPY . .
+
+# Make port 80 available for links and/or publish
+EXPOSE 80
+
+# Define our command to be run when launching the container
+ENTRYPOINT [ "python", "app.py" ]
+
+--------------------------------------------
+
+
+Build Voting app
+----------------
+	project dir terminal --> docker build -t vote ./vote
+
+	# docker build 				- build image command
+	# -t vote 				- name the image
+	# ./vote				- dir with Dockerfile context
+
+
+Create Dockerfile for Worker app (.NET)
+---------------------------------------
+
+We can use Microsoft Visual Studio to generate Dockerfile for additional hints
+	- open the project in Microsoft Visual Studio
+		- right click on Worker / Add / Docker Support ... / OK
+		- use generated Dockerfile as template
+
+Dockerfile
+--------------------------------------------
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+
+# Create a working directory
+WORKDIR /Worker
+
+# Copy the .csproj file and restore
+COPY /src/Worker/Worker.csproj .
+RUN dotnet restore
+
+# Copy source files to the image
+COPY /src .
+
+# Build the project
+RUN dotnet build "./Worker.csproj" -c Release -o /app/build
+
+# Specify app image
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+
+# Specify working directory for this stage
+WORKDIR /Worker
+
+# Tell Docker what command to run when our image is executed inside a container
+ENTRYPOINT ["dotnet", "Worker.dll"]
+
+# Copy the /out directory from the build stage into the runtime image
+COPY --from=builder /app/build .
+--------------------------------------------
+
+Build image for Worker app
+	project dir terminal --> docker build -t worker ./worker
+
+
+
+Start container
+===============
+
+Create voting container starting command
+	terminal --> docker run -d --name vote -p 5000:80 --network frontend --network backend vote
+
+	# docker run						- start container command
+	# -d 							- detached mode
+	# --name vote						- name the container
+	# -p 5000:80						- specify access port (5000), (80 working in container)
+	# --network backend --network frontend			- specify networks
+	# vote							- use the image with name
+
+
+Create result container starting command
+	terminal --> docker run -d --name result -p 5001:80 --network frontend --network backend result
+
+	# docker run						- start container command
+	# -d 							- detached mode
+	# --name result						- name the container
+	# -p 5000:80						- specify access port (5001), (80 working in container)
+	# --network backend --network frontend			- specify networks
+	# result						- use the image with name
+
+
+
+Create redis container starting command
+	terminal --> docker run -d --name redis --network backend redis
+
+	# docker run						- start container command
+	# -d 							- detached mode
+	# --name redis						- name the container
+	# --network backend 					- specify networks
+	# redis							- use the image with name
+
+
+Create worker container starting command
+	terminal --> docker run -d --name worker --network backend worker
+
+	# docker run						- start container command
+	# -d 							- detached mode
+	# --name worker						- name the container
+	# --network backend 					- specify networks
+	# worker						- use the image with name
+
+
+Create postgres container starting command
+
+In VS Code search for connectin strig of the app
+	- Ctrl + Shift + f
+		- search for postgres
+	- in program.cs line 19 we have:
+"                var pgsql = OpenDbConnection("Server=db;Username=postgres;Password=postgres;");"
+
+	- name must be 'db'
+	- username: postgres
+	- password: postgres
+
+Create volume for postgres
+	terminal --> docker volume create postgresvol
+	terminal --> docker volume ls			(check if created)
+		
+Create container starting command
+	terminal --> docker run -d --name db -v postgresvol:/var/lib/postgresql/data -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres --network backend postgres
+
+	# docker run						- start container command
+	# -d 							- detached mode
+	# --name db						- name the container
+	# -v postgresvol:/var/lib/postgresql/data		- map docker volume
+ 	# -e POSTGRES_USER=postgres				- set user
+	# -e POSTGRES_PASSWORD=postgres				- set password
+	# --network backend 					- specify networks
+	# postgres						- use the image with name
+
+
+
+START CONTAINERS MANUALLY
+-------------------------
+
+Start redis container
+---------------------
+	terminal --> docker run -d --name redis --network backend redis
+
+Start postgres container
+------------------------
+	terminal --> docker run -d --name db -v postgresvol:/var/lib/postgresql/data -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres --network backend postgres
+
+Start worker container
+----------------------
+	terminal --> docker run -d --name worker --network backend worker
+
+Start result container
+----------------------
+	terminal --> docker run -d --name result -p 5001:80 --network frontend --network backend result
+
+Start vote container
+--------------------
+	terminal --> docker run -d --name vote -p 5000:80 --network frontend --network backend vote
+
+
+Check networks
+	- check frontend network
+		terminal --> docker network inspect frontend
+
+		# should have only 2 entitie
+
+	- check backend network
+		terminal --> docker network inspect backend
+
+		# should have 5 entitie
+
+TEST THA APP
+	- open vote app in browser: http://localhost:5000/ and vote
+	- open result app in browser: http://localhost:5001/ and see if the results are correct
+
+DELETE ALL STARTED CONTAIERS
+
+
+CREATE DOCKER-COMPOSE FILE
+--------------------------
+
+Create docker-compose.yml in project directory
+
+We can use all starting commands to generate docker-compose.yml file on https://www.composerize.com/
+	- paste all starting commands and copy the result
+	- modyfy the result docker-compose.yml file
+
+docker-compose.yml
+--------------------------------------------
+services:
+    postgres:
+        container_name: db
+        volumes:
+            - postgresvol:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        networks:
+            - backend
+        image: postgres
+    redis:
+        container_name: redis
+        networks:
+            - backend
+        image: redis
+    worker:
+        container_name: worker
+        networks:
+            - backend
+        image: worker
+    result:
+        container_name: result
+        ports:
+            - 5001:80
+        networks:
+            - frontend
+            - backend
+        image: result
+    vote:
+        container_name: vote
+        ports:
+            - 5000:80
+        networks:
+            - frontend
+            - backend
+        image: vote
+networks:
+    frontend:
+    backend:
+volumes:
+    postgresvol:
+--------------------------------------------
+Save changes- Ctrl + s
+
+
+Check if build of docker-compose can be done
+	project dir terminal --> docker compose build 
+
+Start all containers in the compose
+	terminal --> docker compose up -d
+
+	# docker compose 			- use docker compose file in current dir
+	# up					- start containers from docker compose file
+	# -d 					- detached mode
+
+STOP AND REMOVE ALL CONTAINERS IN DOCKER COMPOSE FILE
+	terminal --> docker compose down
+
+
+
+
